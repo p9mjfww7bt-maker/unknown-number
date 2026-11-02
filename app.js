@@ -1,0 +1,12 @@
+const $=id=>document.getElementById(id);let profile={},history=[],soundOn=true,ended=false;
+function show(id){["intro","setup","chatScreen","reveal"].forEach(x=>$(x).classList.toggle("hidden",x!==id))}
+$("startBtn").onclick=()=>show("setup");$("backBtn").onclick=()=>show("setup");
+$("soundBtn").onclick=()=>{soundOn=!soundOn;$("soundBtn").innerHTML=soundOn?"♫ <small>Sound on</small>":"♫ <small>Muted</small>"};
+$("setupForm").onsubmit=e=>{e.preventDefault();profile={name:$("personName").value.trim(),relationship:$("relationship").value,nickname:$("nickname").value.trim(),personality:$("personality").value.trim(),memory:$("memory").value.trim()};history=[];ended=false;$("messages").innerHTML="";add("hey, "+(profile.nickname||"you")+".",false);history.push({role:"assistant",content:"hey, "+(profile.nickname||"you")+"."});show("chatScreen")};
+function add(t,sent){let d=document.createElement("div");d.className="bubble "+(sent?"sent":"received");d.textContent=t;$("messages").appendChild(d);$("messages").scrollTop=$("messages").scrollHeight}
+function asksAboutDeath(s){s=s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");return [
+/\bhow (did|do) you die\b/,/\bhow were you killed\b/,/\bwhat happened to you\b/,/\bcause of death\b/,/\bwhy did you pass away\b/,/\bpaano ka namatay\b/,/\bano ang ikinamatay mo\b/,/\bano ang nangyari sa iyo\b/,/\bpinatay ka ba\b/,/\bsino ang pumatay sa iyo\b/,/\bbakit ka namatay\b/,/\bwhat happened before you died\b/
+].some(r=>r.test(s))}
+$("messageForm").onsubmit=async e=>{e.preventDefault();let text=$("messageInput").value.trim();if(!text||ended)return;add(text,true);$("messageInput").value="";if(asksAboutDeath(text)){reveal();return}history.push({role:"user",content:text});$("typing").classList.remove("hidden");try{let r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({profile,history:history.slice(-16),message:text})});if(!r.ok)throw Error();let d=await r.json();let reply=d.reply||"are you still there?";$("typing").classList.add("hidden");add(reply,false);history.push({role:"assistant",content:reply})}catch{$("typing").classList.add("hidden");add("sorry, baby. can you say that again?",false)}};
+function reveal(){ended=true;$("typing").classList.add("hidden");$("revealText").textContent=`WHO TOLD YOU I WAS ${profile.name.toUpperCase()}?`;show("reveal");if(soundOn){let a=$("sting");a.currentTime=0;a.volume=.85;a.play().catch(()=>{})}}
+$("replayBtn").onclick=()=>{show("intro");history=[];ended=false};
